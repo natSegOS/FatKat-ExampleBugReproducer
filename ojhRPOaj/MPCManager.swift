@@ -99,22 +99,15 @@ class MPCManager: NSObject, ObservableObject {
 		}
 	}
 	
-	func join(peer: MCPeerID) {
+	func join(peer: MCPeerID, recurse: Bool = true) {
 		guard let info = discoveredPeers[peer] else { return }
+		
 		advertise(withDiscoveryInfo: info)
 		
-		sendInvitationRequest(to: peer) { [weak self] in
-			self!.sendLobbyJoinRequest(to: peer)
-		}
-		
 		DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-			print("Recalling 2 seconds later")
-			self?.advertise(withDiscoveryInfo: info)
-			
-			self?.sendInvitationRequest(to: peer) {
-				print("Code in recall is running")
+			self?.sendInvitationRequest(to: peer, onConnection: {
 				self?.sendLobbyJoinRequest(to: peer)
-			}
+			})
 		}
 	}
 	
