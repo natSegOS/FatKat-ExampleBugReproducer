@@ -106,6 +106,16 @@ class MPCManager: NSObject, ObservableObject {
 		sendInvitationRequest(to: peer) { [weak self] in
 			self!.sendLobbyJoinRequest(to: peer)
 		}
+		
+		DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+			print("Recalling 2 seconds later")
+			self?.advertise(withDiscoveryInfo: info)
+			
+			self?.sendInvitationRequest(to: peer) {
+				print("Code in recall is running")
+				self?.sendLobbyJoinRequest(to: peer)
+			}
+		}
 	}
 	
 	func sendInvitationRequest(to peer: MCPeerID, onConnection:  @escaping () -> Void) {
