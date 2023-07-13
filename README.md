@@ -1,4 +1,8 @@
-See issue on: **[this StackOverflow post](https://stackoverflow.com/questions/76666713/mcnearbyservicebrowser-fails-to-connect-after-resetting-services/76682258#76682258)**
+# FatKat Example - Bug Reproducer
+
+### See issue on:
+
+**[this StackOverflow post](https://stackoverflow.com/questions/76666713/mcnearbyservicebrowser-fails-to-connect-after-resetting-services/76682258#76682258)**
 
 *or*
 
