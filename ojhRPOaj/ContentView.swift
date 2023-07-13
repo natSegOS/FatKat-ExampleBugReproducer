@@ -14,9 +14,7 @@ struct ContentView: View {
 	
     var body: some View {
 		VStack {
-			Button("Host") {
-				mpcManager.advertise()
-			}
+			Button("Host", action: mpcManager.host)
 			
 			Button("Join") {
 				mpcManager.browse()
@@ -42,7 +40,7 @@ struct JoinView: View {
 	
 	var body: some View {
 		VStack {
-			ForEach(mpcManager.discoveredPeers) { peer in
+			ForEach(Array(mpcManager.discoveredPeers.keys)) { peer in
 				Button("\(peer.displayName)") {
 					mpcManager.join(peer: peer)
 				}

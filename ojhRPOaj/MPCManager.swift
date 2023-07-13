@@ -20,7 +20,7 @@ class MPCManager: NSObject, ObservableObject {
 		["test": String(iteration)]
 	}
 	
-	@Published var discoveredPeers = [MCPeerID]()
+	@Published var discoveredPeers = [MCPeerID: [String: String]]()
 	@Published var lobbyPeers = [MCPeerID]()
 	
 	private var connectionClosures = [MCPeerID: () -> Void]()
@@ -31,11 +31,6 @@ class MPCManager: NSObject, ObservableObject {
 		super.init()
 		
 		createSession()
-	}
-	
-	func nextIteration() {
-		iteration += 1
-		print("Increased iteration")
 	}
 	
 	func createSession() {
@@ -51,15 +46,19 @@ class MPCManager: NSObject, ObservableObject {
 		print("Destroyed session")
 	}
 	
-	func advertise() {
-		advertiser = MCNearbyServiceAdvertiser(peer: localPeer, discoveryInfo: discoveryInfo, serviceType: "test-lol")
+	func host() {
+		advertise()
+		browse()
+		print("Hosted lobby")
+	}
+	
+	func advertise(withDiscoveryInfo info: [String: String]? = nil) {
+		guard advertiser == nil else { return }
+		
+		advertiser = MCNearbyServiceAdvertiser(peer: localPeer, discoveryInfo: info ?? discoveryInfo, serviceType: "test-lol")
 		advertiser?.delegate = self
 		advertiser?.startAdvertisingPeer()
 		print("Advertised")
-		
-		if browser == nil {
-			browse()
-		}
 	}
 	
 	func stopAdvertising() {
@@ -70,14 +69,12 @@ class MPCManager: NSObject, ObservableObject {
 	}
 	
 	func browse() {
+		guard browser == nil else { return }
+		
 		browser = MCNearbyServiceBrowser(peer: localPeer, serviceType: "test-lol")
 		browser?.delegate = self
 		browser?.startBrowsingForPeers()
 		print("Browsed")
-		
-		if advertiser == nil {
-			advertise()
-		}
 	}
 	
 	func stopBrowsing() {
@@ -92,24 +89,22 @@ class MPCManager: NSObject, ObservableObject {
 		stopAdvertising()
 		stopBrowsing()
 		
-		localPeer = MCPeerID(displayName: UUID().uuidString)
-		discoveredPeers.removeAll(keepingCapacity: true)
-		lobbyPeers.removeAll(keepingCapacity: true)
-		
-		createSession()
-		advertise()
-		browse()
-		print("Reset")
+		DispatchQueue.main.async { [weak self] in
+			self!.localPeer = MCPeerID(displayName: UUID().uuidString)
+			self!.discoveredPeers.removeAll(keepingCapacity: true)
+			self!.lobbyPeers.removeAll(keepingCapacity: true)
+			
+			self!.createSession()
+			print("Reset")
+		}
 	}
 	
 	func join(peer: MCPeerID) {
+		guard let info = discoveredPeers[peer] else { return }
+		advertise(withDiscoveryInfo: info)
+		
 		sendInvitationRequest(to: peer) { [weak self] in
-			DispatchQueue.main.async {
-				self!.reset()
-				self!.sendInvitationRequest(to: peer) {
-					self!.sendJoinRequest(to: peer)
-				}
-			}
+			self!.sendLobbyJoinRequest(to: peer)
 		}
 	}
 	
@@ -132,18 +127,25 @@ class MPCManager: NSObject, ObservableObject {
 		print("Sent invite")
 	}
 	
-	func sendJoinRequest(to peer: MCPeerID) {
+	func sendLobbyJoinRequest(to peer: MCPeerID) {
 		let joinRequest = try! JSONEncoder().encode(DataSend.joinRequest)
 		try! session!.send(joinRequest, toPeers: [peer], with: .reliable)
 		print("Sent join request")
 	}
 	
-	func acceptJoinRequest(from peer: MCPeerID) {
-		lobbyPeers.append(peer)
+	func acceptLobbyJoinRequest(from peer: MCPeerID) {
+		DispatchQueue.main.async { [weak self] in
+			self!.lobbyPeers.append(peer)
+		}
 		
 		let acceptance = try! JSONEncoder().encode(DataSend.acceptJoinRequest)
 		try! session!.send(acceptance, toPeers: [peer], with: .reliable)
 		print("Accepted join request")
+	}
+	
+	func leaveLobby() {
+		reset()
+		print("Left lobby")
 	}
 	
 	deinit {
@@ -154,6 +156,7 @@ class MPCManager: NSObject, ObservableObject {
 		lobbyPeers.removeAll()
 		connectionClosures.removeAll()
 		isJoining = false
+		print("Deinitialized MPCManager")
 	}
 }
 
@@ -169,6 +172,7 @@ extension MPCManager: MCSessionDelegate {
 		if state == .connected && isJoining {
 			isJoining = false
 			connectionClosures[peerID]?()
+			print("State changed to connected so called connection closure")
 		}
 	}
 	
@@ -179,11 +183,13 @@ extension MPCManager: MCSessionDelegate {
 		
 		switch dataSend {
 		case .joinRequest:
-			acceptJoinRequest(from: peerID)
+			acceptLobbyJoinRequest(from: peerID)
 			
 		case .acceptJoinRequest:
-			lobbyPeers.append(peerID)
-			print("Appended to lobbyPeers array")
+			DispatchQueue.main.async { [weak self] in
+				self!.lobbyPeers.append(peerID)
+				print("Appended to lobbyPeers array")
+			}
 		}
 	}
 	
@@ -238,15 +244,15 @@ extension MPCManager: MCNearbyServiceBrowserDelegate {
 	
 	func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String : String]?) {
 		guard peerID.displayName != localPeer.displayName else { return }
-		guard !discoveredPeers.contains(where: { $0.displayName == peerID.displayName }) else { return }
+		guard !discoveredPeers.contains(where: { $0.key.displayName == peerID.displayName } ) else { return }
 		
 		print("Found peer")
-		discoveredPeers.append(peerID)
+		discoveredPeers[peerID] = info ?? [:]
 	}
 	
 	func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
 		print("Lost peer")
-		discoveredPeers.removeAll { $0.displayName == peerID.displayName }
+		discoveredPeers.removeValue(forKey: peerID)
 	}
 }
 

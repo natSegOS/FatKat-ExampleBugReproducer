@@ -277,7 +277,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ojhRPOaj/Info.plist;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = Accept...;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "This will allow you to connect with other players in FatKat.";
 				INFOPLIST_KEY_NSNearbyInteractionUsageDescription = Accept...;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -309,7 +309,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ojhRPOaj/Info.plist;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = Accept...;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "This will allow you to connect with other players in FatKat.";
 				INFOPLIST_KEY_NSNearbyInteractionUsageDescription = Accept...;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
