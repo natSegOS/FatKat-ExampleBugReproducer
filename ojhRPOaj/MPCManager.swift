@@ -99,7 +99,7 @@ class MPCManager: NSObject, ObservableObject {
 		}
 	}
 	
-	func join(peer: MCPeerID, recurse: Bool = true) {
+	func join(peer: MCPeerID) {
 		guard let info = discoveredPeers[peer] else { return }
 		
 		advertise(withDiscoveryInfo: info)
